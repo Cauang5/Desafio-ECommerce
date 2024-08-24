@@ -1,14 +1,12 @@
 package com.compass.ecommerce.controller;
 
-import com.compass.ecommerce.Exception.ErroResponse;
-import com.compass.ecommerce.Exception.ResourceNotFoundException;
 import com.compass.ecommerce.Service.ProductService;
 import com.compass.ecommerce.model.Product;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -22,7 +20,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product){
+    public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product){
         Product createdProduct = productService.create(product);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
     }
@@ -46,18 +44,10 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product updatedProduct){
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody Product updatedProduct){
         Product product = productService.updateProduct(id, updatedProduct);
         return ResponseEntity.status(HttpStatus.OK).body(product);
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErroResponse> handleResourceNotFoundException(ResourceNotFoundException ex){
-        ErroResponse erroResponse = new ErroResponse(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                LocalDateTime.now()
-        );
-        return new ResponseEntity<>(erroResponse, HttpStatus.NOT_FOUND);
-    }
+
 }
