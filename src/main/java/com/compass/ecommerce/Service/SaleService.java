@@ -1,13 +1,18 @@
 package com.compass.ecommerce.Service;
 
-import com.compass.ecommerce.DTO.ItemSaleDTO;
-import com.compass.ecommerce.DTO.SaleDTO;
+import com.compass.ecommerce.DTO.ItemSaleDTOResponse;
+import com.compass.ecommerce.DTO.SaleDTORequest;
+import com.compass.ecommerce.DTO.SaleDTOResponse;
+import com.compass.ecommerce.Exception.ResourceNotFoundException;
 import com.compass.ecommerce.model.ItemSale;
 import com.compass.ecommerce.model.Product;
 import com.compass.ecommerce.model.Sale;
+import com.compass.ecommerce.model.User;
 import com.compass.ecommerce.repository.ItemSaleRepository;
 import com.compass.ecommerce.repository.ProductRepository;
 import com.compass.ecommerce.repository.SaleRepository;
+import com.compass.ecommerce.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,102 +23,181 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class SaleService {
 
     private final SaleRepository saleRepository;
     private final ItemSaleRepository itemSaleRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
 
-    public Sale createSale(SaleDTO saleDTO) {
 
-        var sale = new Sale();
+    public SaleDTOResponse createSale(SaleDTORequest saleDTORequest) {
+        User user = userRepository.findById(saleDTORequest.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("Código do cliente inválido"));
+
+
+        Sale sale = new Sale();
+        sale.setUser(user);
         sale.setDate(LocalDateTime.now());
 
+        //Converte os itens da requisição em uma lista de ItemSale
+        List<ItemSale> itemSales = saleDTORequest.items().stream()
+                .map(itemDTO -> {
+                    // Verifica se o ID do produto é nulo
+                    if (itemDTO.productId() == null) {
+                        throw new IllegalArgumentException("O id do produto não pode ser nulo");
+                    }
 
-        List<ItemSale> itensSale = convertItens(sale, saleDTO.itens());
-        sale.setItens(itensSale);
+                    // Busca o produto pelo ID
+                    Product product = productRepository.findById(itemDTO.productId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + itemDTO.productId()));
 
-        BigDecimal totalValue = calculateTotalPrice(sale.getItens());
-        sale.setTotal(totalValue);
 
+                    if (product.getQuantity() < itemDTO.quantity()){
+                        throw new RuntimeException("Estoque insuficiente do produto: " +product.getName());
+                    }
+
+
+                    // Cria um novo ItemSale e o associa ao produto e à venda
+                    ItemSale itemSale = new ItemSale();
+
+                    itemSale.setProduct(product);
+
+                    itemSale.setQuantity(itemDTO.quantity());
+                    itemSale.setSale(sale);
+
+                    return itemSale;
+
+                })
+                .collect(Collectors.toList());
+
+        for(ItemSale itemSale :itemSales){
+            Product product = itemSale.getProduct();
+
+            Integer newQuantity = product.getQuantity() - itemSale.getQuantity();
+            product.setQuantity(newQuantity);
+
+            productRepository.save(product);
+        }
+
+        itemSaleRepository.saveAll(itemSales);
+        sale.setItemSales(itemSales);
+
+        //Realiza o calculo dos itens a venda
+        BigDecimal total = itemSales.stream()
+                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        sale.setTotal(total);
 
         saleRepository.save(sale);
-        itemSaleRepository.saveAll(itensSale);
 
-        return sale;
+        return new SaleDTOResponse(
+                sale.getId(),
+                sale.getUser().getName(),
+                sale.getDate(),
+                sale.getTotal(),
+                sale.getItemSales().stream()
+                        .map(itemSale -> new ItemSaleDTOResponse(
+                                itemSale.getProduct().getId(),
+                                itemSale.getProduct().getName(),
+                                itemSale.getProduct().getDescription(),
+                                itemSale.getQuantity()
+                        ))
+                        .collect(Collectors.toList())
+        );
     }
 
-    public SaleDTO findSaleById(Long id) {
+    public SaleDTOResponse findById(Long id) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Id não encontrado" + id));
+                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " +id));
 
-        List<ItemSaleDTO> itensDTO = sale.getItens()
-                .stream()
-                .map(itemSale -> new ItemSaleDTO(
+        List<ItemSaleDTOResponse> items = sale.getItemSales().stream()
+                .map(itemSale -> new ItemSaleDTOResponse(
                         itemSale.getProduct().getId(),
                         itemSale.getProduct().getName(),
                         itemSale.getProduct().getDescription(),
                         itemSale.getQuantity()
+
                 ))
                 .collect(Collectors.toList());
 
-        return new SaleDTO(
+        return new SaleDTOResponse(
+                sale.getId(),
+                sale.getUser().getName(),
+                sale.getDate(),
                 sale.getTotal(),
-                itensDTO
+                items);
+
+    }
+
+    public SaleDTOResponse updateSale(Long id, SaleDTORequest saleDTORequest) {
+        Sale sale = saleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " +id));
+
+        User user = userRepository
+                .findById(saleDTORequest.userId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado pelo ID: " + saleDTORequest.userId()));
+
+        sale.setUser(user);
+
+        sale.setDate(LocalDateTime.now());
+        //Remove todos os itens associados à venda
+        sale.getItemSales().forEach(itemSale -> itemSaleRepository.delete(itemSale));
+
+        List<ItemSale> updatedItemSales = saleDTORequest.items().stream()
+                .map(itemDTO -> {
+                    if (itemDTO.productId() == null) {
+                        throw new IllegalArgumentException("O id do produto não pode ser nulo");
+                    }
+
+                    Product product = productRepository.findById(itemDTO.productId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + itemDTO.productId()));
+
+                    ItemSale itemSale = new ItemSale();
+                    itemSale.setProduct(product);
+                    itemSale.setQuantity(itemDTO.quantity());
+                    itemSale.setSale(sale);
+
+                    return itemSale;
+                })
+                .collect(Collectors.toList());
+
+        itemSaleRepository.saveAll(updatedItemSales);
+        sale.setItemSales(updatedItemSales);
+
+        BigDecimal total = updatedItemSales.stream()
+                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        sale.setTotal(total);
+
+        saleRepository.save(sale);
+
+        return new SaleDTOResponse(
+                sale.getId(),
+                sale.getUser().getName(),
+                sale.getDate(),
+                sale.getTotal(),
+                sale.getItemSales().stream()
+                        .map(itemSale -> new ItemSaleDTOResponse(
+                                itemSale.getProduct().getId(),
+                                itemSale.getProduct().getName(),
+                                itemSale.getProduct().getDescription(),
+                                itemSale.getQuantity()
+                        ))
+                        .collect(Collectors.toList())
         );
     }
 
+    public void deleteSale(Long id) {
+        Sale sale = saleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " +id));
 
-    public Sale updateSale(Long id, SaleDTO saleDTO) {
-        System.out.println("procurando venda");
-        Sale saleExistent = saleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sale not found"));
+        //Remove todos os itens associados à venda
+        sale.getItemSales().forEach(itemSale -> itemSaleRepository.delete(itemSale));
 
-        //saleExistent.getItens().clear();
-
-        saleExistent.setItens(convertItens(saleExistent, saleDTO.itens()));
-
-        /*List<ItemSale> updatedItems = convertItens(saleExistent, saleDTO.itens());
-        saleExistent.setItens(updatedItems);*/
-
-        BigDecimal total = calculateTotalPrice(saleExistent.getItens());
-        saleExistent.setTotal(total);
-
-        return saleRepository.save(saleExistent);
-    }
-
-
-    //Método para calcular os valores dos itens adicionados à venda.
-    private BigDecimal calculateTotalPrice(List<ItemSale> itemSale) {
-        return itemSale.stream()
-                .map(item -> {
-                    BigDecimal priceItemSale = item.getProduct().getPrice();
-                    return priceItemSale.multiply(BigDecimal.valueOf(item.getQuantity()));
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-
-    //Método para converter uma Lista de ItemSaleDTO em itemSale
-    private List<ItemSale> convertItens(Sale sale, List<ItemSaleDTO> itens) {
-        if (itens.isEmpty()) {
-            throw new RuntimeException("Não é possível realizar um pedido sem item");
-        }
-        return itens
-                .stream()
-                .map(dto -> {
-                    Long idItem = dto.productId();
-                    Product product = productRepository
-                            .findById(idItem)
-                            .orElseThrow(() -> new RuntimeException("Código de produto inválido" + idItem));
-                    ItemSale itemSale = new ItemSale();
-                    itemSale.setQuantity(dto.quantity());
-                    itemSale.setSale(sale);
-                    itemSale.setProduct(product);
-
-                    System.out.println("Produto associado " + product.getName() + " com o id: " + product.getId());
-
-                    return itemSale;
-                }).collect(Collectors.toList());
+        saleRepository.delete(sale);
     }
 }

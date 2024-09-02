@@ -1,8 +1,9 @@
 package com.compass.ecommerce.controller;
 
-import com.compass.ecommerce.DTO.SaleDTO;
+import com.compass.ecommerce.DTO.SaleDTORequest;
+import com.compass.ecommerce.DTO.SaleDTOResponse;
 import com.compass.ecommerce.Service.SaleService;
-import com.compass.ecommerce.model.Sale;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,26 +18,26 @@ public class SaleController {
     }
 
     @PostMapping
-    public ResponseEntity<SaleDTO> createSale(@RequestBody SaleDTO saleDTO){
-        Sale sale = saleService.createSale(saleDTO);
+    public ResponseEntity<SaleDTOResponse> createSale(@Valid @RequestBody SaleDTORequest saleDTORequest){
+        SaleDTOResponse sale = saleService.createSale(saleDTORequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SaleDTO> findByID(@PathVariable Long id){
-        SaleDTO sale = saleService.findSaleById(id);
+    public ResponseEntity<SaleDTOResponse> findByID(@PathVariable Long id){
+        SaleDTOResponse sale = saleService.findById(id);
         return ResponseEntity.status(HttpStatus.OK).body(sale);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SaleDTO> updateSale(@PathVariable Long id, @RequestBody SaleDTO saleDTO){
-        Sale sale = saleService.updateSale(id, saleDTO);
+    public ResponseEntity<SaleDTOResponse> updateSale(@PathVariable Long id, @Valid @RequestBody SaleDTORequest saleDTORequest){
+        SaleDTOResponse saleDTOResponse = saleService.updateSale(id, saleDTORequest);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    /*@DeleteMapping("/{id}")
-    public ResponseEntity<SaleDTO> deleteSale(@PathVariable Long id){
+    @DeleteMapping("/{id}")
+    public ResponseEntity<SaleDTOResponse> deleteSale(@PathVariable Long id){
         saleService.deleteSale(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }*/
+    }
 }
