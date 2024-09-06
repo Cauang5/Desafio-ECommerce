@@ -2,8 +2,6 @@ package com.compass.ecommerce.Service;
 
 import com.compass.ecommerce.DTO.ProductDTORequest;
 import com.compass.ecommerce.DTO.ProductDTOResponse;
-import com.compass.ecommerce.DTO.UserDTORequest;
-import com.compass.ecommerce.DTO.UserDTOResponse;
 import com.compass.ecommerce.Exception.ResourceNotFoundException;
 import com.compass.ecommerce.model.Product;
 import com.compass.ecommerce.repository.ProductRepository;
