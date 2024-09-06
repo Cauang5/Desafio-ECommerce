@@ -1,5 +1,7 @@
 package com.compass.ecommerce.model;
 
+import com.compass.ecommerce.model.enums.SaleStatus;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -32,6 +34,9 @@ public class Sale {
     @ManyToOne
     @JoinColumn(name = "cliente_id")
     private User user;
+
+    @Enumerated(EnumType.STRING)
+    private SaleStatus status;
 
     @NotEmpty(message = "A venda deve conter pelo menos um item.")
     @Size(min = 1, message = "A venda deve conter pelo menos um item.")

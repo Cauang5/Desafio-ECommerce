@@ -32,7 +32,7 @@ public class SaleController {
     @PutMapping("/{id}")
     public ResponseEntity<SaleDTOResponse> updateSale(@PathVariable Long id, @Valid @RequestBody SaleDTORequest saleDTORequest){
         SaleDTOResponse saleDTOResponse = saleService.updateSale(id, saleDTORequest);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.OK).body(saleDTOResponse);
     }
 
     @DeleteMapping("/{id}")

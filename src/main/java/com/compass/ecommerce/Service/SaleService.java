@@ -8,6 +8,7 @@ import com.compass.ecommerce.model.ItemSale;
 import com.compass.ecommerce.model.Product;
 import com.compass.ecommerce.model.Sale;
 import com.compass.ecommerce.model.User;
+import com.compass.ecommerce.model.enums.SaleStatus;
 import com.compass.ecommerce.repository.ItemSaleRepository;
 import com.compass.ecommerce.repository.ProductRepository;
 import com.compass.ecommerce.repository.SaleRepository;
@@ -58,7 +59,6 @@ public class SaleService {
                         throw new RuntimeException("Estoque insuficiente do produto: " +product.getName());
                     }
 
-
                     // Cria um novo ItemSale e o associa ao produto e à venda
                     ItemSale itemSale = new ItemSale();
 
@@ -72,6 +72,7 @@ public class SaleService {
                 })
                 .collect(Collectors.toList());
 
+        // Lógica para controle do estoque
         for(ItemSale itemSale :itemSales){
             Product product = itemSale.getProduct();
 
@@ -97,6 +98,7 @@ public class SaleService {
                 sale.getId(),
                 sale.getUser().getName(),
                 sale.getDate(),
+                sale.getStatus(),
                 sale.getTotal(),
                 sale.getItemSales().stream()
                         .map(itemSale -> new ItemSaleDTOResponse(
@@ -127,6 +129,7 @@ public class SaleService {
                 sale.getId(),
                 sale.getUser().getName(),
                 sale.getDate(),
+                sale.getStatus(),
                 sale.getTotal(),
                 items);
 
@@ -141,8 +144,8 @@ public class SaleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado pelo ID: " + saleDTORequest.userId()));
 
         sale.setUser(user);
-
         sale.setDate(LocalDateTime.now());
+
         //Remove todos os itens associados à venda
         sale.getItemSales().forEach(itemSale -> itemSaleRepository.delete(itemSale));
 
@@ -164,6 +167,29 @@ public class SaleService {
                 })
                 .collect(Collectors.toList());
 
+        //Verifica o status atual da venda e atualiza o estoque
+        SaleStatus saleStatus = saleDTORequest.status();
+        sale.setStatus(saleStatus);
+
+        for(ItemSale itemSale :updatedItemSales){
+            Product product = itemSale.getProduct();
+
+            if (saleStatus == SaleStatus.CANCELED) {
+                // Caso a venda seja cancelada, devolve o produto ao estoque
+                Integer newQuantity = product.getQuantity() + itemSale.getQuantity();
+                product.setQuantity(newQuantity);
+            } else if (saleStatus == SaleStatus.FINISHED) {
+                // Caso a venda seja finalizada, remove permanentemente o produto do estoque
+                Integer newQuantity = product.getQuantity() - itemSale.getQuantity();
+                if (newQuantity < 0) {
+                    throw new RuntimeException("Estoque insuficiente para o produto: " + product.getName());
+                }
+                product.setQuantity(newQuantity);
+            }
+
+            productRepository.save(product);
+        }
+
         itemSaleRepository.saveAll(updatedItemSales);
         sale.setItemSales(updatedItemSales);
 
@@ -179,6 +205,7 @@ public class SaleService {
                 sale.getId(),
                 sale.getUser().getName(),
                 sale.getDate(),
+                sale.getStatus(),
                 sale.getTotal(),
                 sale.getItemSales().stream()
                         .map(itemSale -> new ItemSaleDTOResponse(
