@@ -1,7 +1,8 @@
 package com.compass.ecommerce.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,17 +17,17 @@ public class ItemSale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotNull(message = "A quantidade é obrigatória.")
+    @Min(value = 1, message = "A quantidade deve ser pelo menos 1.")
     private Integer quantity;
 
     @ManyToOne
     @JoinColumn(name = "sale_id")
-    @JsonIgnore// Anotação para ignorar
     private Sale sale;
 
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
 
-    public ItemSale(Sale saleExistent, Product product, Integer quantity) {
-    }
 }

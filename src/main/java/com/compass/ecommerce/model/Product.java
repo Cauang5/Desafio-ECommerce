@@ -35,7 +35,7 @@ public class Product {
     private BigDecimal price;
 
     @NotNull(message = "A quantidade não pode ser nula")
-    @Min(value = 1, message = "A quantidade mínima deve ser 1")
+    @Min(value = 0, message = "A quantidade mínima deve ser 1")
     private Integer quantity;
 
 }
