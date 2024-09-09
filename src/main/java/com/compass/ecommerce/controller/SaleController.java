@@ -62,4 +62,9 @@ public class SaleController {
     public List<SaleDTOResponse> weeklyReport(@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return saleService.weeklyReport(date);
     }
+
+    @GetMapping("/report-monthly")
+    public List<SaleDTOResponse> monthlyReport(@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return saleService.monthlyReport(date);
+    }
 }

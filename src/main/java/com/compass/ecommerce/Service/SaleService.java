@@ -321,8 +321,8 @@ public class SaleService {
 
     public List<SaleDTOResponse> weeklyReport(LocalDate date) {
         // Calcular o início e o fim da semana
-        LocalDateTime startWeek = date.with(DayOfWeek.MONDAY).atStartOfDay();  // Início da semana (segunda-feira)
-        LocalDateTime endWeek = date.with(DayOfWeek.SUNDAY).atTime(LocalTime.MAX);  // Fim da semana (domingo)
+        LocalDateTime startWeek = date.with(DayOfWeek.MONDAY).atStartOfDay();
+        LocalDateTime endWeek = date.with(DayOfWeek.SUNDAY).atTime(LocalTime.MAX);
 
         // Buscar as vendas no intervalo entre o início e o fim da semana
         List<Sale> sales = saleRepository.findSalesByDateRange(startWeek, endWeek);
@@ -347,4 +347,31 @@ public class SaleService {
                 .collect(Collectors.toList());
     }
 
+    public List<SaleDTOResponse> monthlyReport(LocalDate date) {
+        // Calcular o início e o fim do mês
+        LocalDateTime startMonth = date.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime endMonth = date.withDayOfMonth(date.lengthOfMonth()).atTime(LocalTime.MAX);
+
+        // Buscar as vendas no intervalo entre o início e o fim do mês
+        List<Sale> sales = saleRepository.findSalesByDateRange(startMonth, endMonth);
+
+        // Converter as vendas para DTOs de resposta
+        return sales.stream()
+                .map(sale -> new SaleDTOResponse(
+                        sale.getId(),
+                        sale.getUser().getName(),
+                        sale.getDate(),
+                        sale.getStatus(),
+                        sale.getTotal(),
+                        sale.getItemSales().stream()
+                                .map(itemSale -> new ItemSaleDTOResponse(
+                                        itemSale.getProduct().getId(),
+                                        itemSale.getProduct().getName(),
+                                        itemSale.getProduct().getDescription(),
+                                        itemSale.getQuantity()
+                                ))
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+    }
 }
