@@ -3,6 +3,16 @@
 Desafio 03 do programa de bolsas da Uol Compass, onde foi solicitado o desenvolvimento de um e-commerce. 
 Este projeto foi desenvolvido utilizando a arquitetura layered e implementa uma API RESTful para gerenciar produtos e vendas. O sistema oferece funcionalidades como criação, leitura, atualização e exclusão de produtos e vendas, controle de estoque, inativação de produtos, geração de relatórios de vendas, e cache otimizado para operações de leitura. A aplicação inclui autenticação via JWT e autorização baseada em permissões, com regras específicas para usuários com privilégios de ADMIN.
 
+
+## Índice
+1. [Funcionalidades](#funcionalidades-principais)
+2. [Tecnologias Utilizadas](#tecnologias-utilizadas)
+3. [Requisitos](#requisitos)
+4. [Instalação](#instalacao)
+5. [Uso](#uso)
+6. [Diagrama de Classes](#diagrama-de-classes)
+
+
 ## Funcionalidades principais:
 
 1. **CRUD de Produtos**: Permite que os usuários criem, leiam, atualizem e excluam produtos, com validações como preço positivo. Produtos associados a vendas não podem ser deletados, mas podem ser inativados.
