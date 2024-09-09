@@ -1,7 +1,9 @@
-package com.compass.ecommerce.DTO;
+package com.compass.ecommerce.DTO.Sale;
 
+import com.compass.ecommerce.DTO.ItemSale.ItemSaleDTOResponse;
 import com.compass.ecommerce.model.enums.SaleStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.DecimalMin;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +16,8 @@ public record SaleDTOResponse(Long id,
                               LocalDateTime dateTime,
 
                               SaleStatus status,
+
+                              @DecimalMin(value = "0.01", message = "O total da venda deve ser maior que zero.")
                               BigDecimal total,
                               List<ItemSaleDTOResponse> itens) {
 }
