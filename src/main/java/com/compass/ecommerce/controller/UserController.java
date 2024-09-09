@@ -24,7 +24,7 @@ public class UserController {
     private TokenService tokenService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO dto){
+    public ResponseEntity<LoginDTOResponse> login(@RequestBody @Valid AuthenticationDTORequest dto){
         var response = userService.login(dto);
         return ResponseEntity.ok(response);
     }
@@ -60,7 +60,7 @@ public class UserController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword (@RequestBody ResetPasswordDTO resetPasswordDTO){
+    public ResponseEntity<String> resetPassword (@Valid @RequestBody ResetPasswordDTO resetPasswordDTO){
         userService.resetPassword(resetPasswordDTO);
         return ResponseEntity.status(HttpStatus.OK).build();
     }

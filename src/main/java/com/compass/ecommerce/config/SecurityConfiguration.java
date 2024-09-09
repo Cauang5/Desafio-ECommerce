@@ -1,5 +1,7 @@
 package com.compass.ecommerce.config;
 
+import com.compass.ecommerce.Exception.CustomAccesDeniedException;
+import com.compass.ecommerce.Exception.CustomAccesDeniedHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +23,12 @@ public class SecurityConfiguration {
     @Autowired
     private SecurityFilter securityFilter;
 
+    private final CustomAccesDeniedHandler customAccesDeniedHandler;
+
+    public SecurityConfiguration(CustomAccesDeniedHandler customAccesDeniedHandler) {
+        this.customAccesDeniedHandler = customAccesDeniedHandler;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
@@ -37,13 +45,16 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.PUT, "/user/change-password").authenticated()
 
                         // Só admin pode acessar
-                        .requestMatchers(HttpMethod.GET, "/user").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/use r").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/products").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/products").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/products/**").hasRole("ADMIN")
 
                         // Demias requisições precisam de autenticação
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(customAccesDeniedHandler)
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

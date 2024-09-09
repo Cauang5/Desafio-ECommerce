@@ -31,13 +31,15 @@ public class DataLoader implements CommandLineRunner {
             productA.setName("Mouse");
             productA.setDescription("Mouse Gamer");
             productA.setPrice(new BigDecimal("149.90"));
-            productA.setQuantity(50);
+            productA.setStock(50);
+            productA.setQuantity(0);
 
             Product productB = new Product();
             productB.setName("Garrafa");
             productB.setDescription("Garrafa termica 500ml");
             productB.setPrice(new BigDecimal("20.00"));
-            productB.setQuantity(300);
+            productB.setStock(300);
+            productB.setQuantity(0);
 
             productRepository.save(productA);
             productRepository.save(productB);
@@ -46,18 +48,18 @@ public class DataLoader implements CommandLineRunner {
 
 
             User userA = new User();
-            userA.setName("Arrascaeta Gerson");
-            userA.setLogin("arraxca");
-            userA.setEmail("arrascage@gmail.com");
+            userA.setName("Artur Antunes");
+            userA.setLogin("artur");
+            userA.setEmail("artur@gmail.com");
             userA.setPassword(encryptedPassword);
             userA.setRole(UserRole.ADMIN);
 
             userRepository.save(userA);
 
             User userB = new User();
-            userB.setName("jose paulo");
-            userB.setLogin("josepaulo");
-            userB.setEmail("josepaulo@gmail.com");
+            userB.setName("joao pedro");
+            userB.setLogin("joaopedro");
+            userB.setEmail("joaopedro@gmail.com");
             userB.setPassword(encryptedPassword);
             userB.setRole(UserRole.USER);
 

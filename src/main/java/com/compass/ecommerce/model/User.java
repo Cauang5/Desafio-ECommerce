@@ -26,20 +26,12 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "O nome do usuário não pode ser nulo")
-    @Size(min =  2, max = 100, message = "O nome deve conter entre 2 e 100 caracteres")
     private String name;
 
-    @NotNull(message = "O email do usuário não pode ser nulo")
-    @Email(message = "O email tem que ser válido")
     private String email;
 
-    @NotNull(message = "O login do usuário não pode ser nulo")
-    @Size(min =  2, max = 100, message = "O login deve conter entre 2 e 100 caracteres")
     private String login;
 
-    @NotNull(message = "A senha não pode ser nula")
-    @Size(min = 8, message = "A senha tem que conter mais do que 8 caracteres")
     private String password;
 
     @NotNull(message = "O papel de usuário deve ser especificado")
