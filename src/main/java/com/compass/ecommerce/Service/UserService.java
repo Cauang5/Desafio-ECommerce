@@ -132,13 +132,13 @@ public class UserService implements UserDetailsService {
     }
 
 
-    public LoginResponseDTO login(AuthenticationDTO dto){
+    public LoginDTOResponse login(AuthenticationDTORequest dto){
         var usernamePassword = new UsernamePasswordAuthenticationToken(dto.login(), dto.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
         var token = tokenService.generateToken((User) auth.getPrincipal());
 
-        return new LoginResponseDTO(token);
+        return new LoginDTOResponse(token);
     }
 
     //Método adicional, caso o usuário já esteja logado e queira alterar a sua senha!
@@ -147,9 +147,6 @@ public class UserService implements UserDetailsService {
         // Pega o usuário autenticado
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
-
-        /*userRepository.findByLogin(user.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado " + user.getUsername()));*/
 
         if(!passwordEncoder.matches(updatePasswordDTO.oldPassword(), user.getPassword())){
             throw new PasswordMismatchExcepiton("A senha antiga está incorreta");
@@ -184,6 +181,6 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) {
         return userRepository.findByLogin(username)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado pelo login: " +username));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado, login ou senha errados: "));
     }
 }
