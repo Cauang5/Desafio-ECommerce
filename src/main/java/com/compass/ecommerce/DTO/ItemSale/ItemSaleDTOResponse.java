@@ -1,4 +1,4 @@
-package com.compass.ecommerce.DTO;
+package com.compass.ecommerce.DTO.ItemSale;
 
 public record ItemSaleDTOResponse(Long productId,
                                   String productName,
