@@ -109,7 +109,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
 
-        product.removeFromStock(removeStock.quantity());
+        product.removeStock(removeStock.quantity());
 
         productRepository.save(product);
 
