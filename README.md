@@ -71,6 +71,16 @@ Antes de começar, certifique-se de ter os seguintes programas instalados em sua
 
 Clone o repositório do projeto usando o Git:
 
+### 3. Configuração do banco de dados
+spring.datasource.url=jdbc:postgresql://localhost:5432/ecommerce
+spring.datasource.username=seu-usuario
+spring.datasource.password=sua-senha
+
+# Outras configurações do JPA/Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
 ```bash
 git clone https://github.com/usuario/nome-do-repositorio.git
 
