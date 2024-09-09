@@ -13,9 +13,12 @@ import com.compass.ecommerce.repository.ProductRepository;
 import com.compass.ecommerce.repository.SaleRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -33,13 +36,21 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     public ProductDTOResponse create(ProductDTORequest productDTORequest) {
+
+        //Verifica se já existe um produto com essa mesma descrição
+        productRepository.findByDescription(productDTORequest.description())
+                .ifPresent(existingProduct -> {
+                    throw new ResourceNotFoundException("Produto com a descrição '" + productDTORequest.description() + "' já existe.");
+                });
+
         Product product = new Product();
         product.setName(productDTORequest.name());
         product.setDescription(productDTORequest.description());
         product.setPrice(productDTORequest.price());
         product.setQuantity(productDTORequest.quantity());
-        product.setStock(productDTORequest.stock());
+        product.setStock(productDTORequest.quantity());
 
         productRepository.save(product);
 
@@ -52,6 +63,7 @@ public class ProductService {
                 product.getStock());
     }
 
+    @Cacheable(value = "products")
     public GetProductDTOResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
@@ -61,9 +73,26 @@ public class ProductService {
                 product.getName(),
                 product.getDescription(),
                 product.getPrice(),
-                product.getQuantity());
+                product.getStock());
     }
 
+    @Cacheable(value = "products")
+    public List<GetProductDTOResponse> getAllProducts() {
+        System.out.println("Consultando o banco de dados para obter todos os produtos.");
+        List<Product> products = productRepository.findAll();
+
+        return products.stream()
+                .map(product -> new GetProductDTOResponse(
+                        product.getId(),
+                        product.getName(),
+                        product.getDescription(),
+                        product.getPrice(),
+                        product.getStock()))
+                .collect(Collectors.toList());
+    }
+
+
+    @CacheEvict(value = "products", allEntries = true)
     public ProductDTOResponse updateProduct(Long id, ProductDTORequest productDTORequest) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
@@ -85,8 +114,9 @@ public class ProductService {
         );
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     // Adiciona produtos ao estoque
-    public ProductDTOResponse addProductStock(Long id ,UpdateStockDTORequest addProduct) {
+    public ProductDTOResponse addProductStock(Long id, UpdateStockDTORequest addProduct) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
 
@@ -104,6 +134,7 @@ public class ProductService {
         );
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     // Remove produtos do estoque
     public ProductDTOResponse removeProductStock(Long id, UpdateStockDTORequest removeStock) {
         Product product = productRepository.findById(id)
@@ -123,6 +154,7 @@ public class ProductService {
         );
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));

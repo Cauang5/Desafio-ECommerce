@@ -15,6 +15,8 @@ import com.compass.ecommerce.repository.SaleRepository;
 import com.compass.ecommerce.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,7 +39,7 @@ public class SaleService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse createSale(SaleDTORequest saleDTORequest) {
         User user = userRepository.findById(saleDTORequest.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("Código do usuário inválido"));
@@ -116,6 +118,7 @@ public class SaleService {
         );
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse confirmSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -157,6 +160,7 @@ public class SaleService {
         );
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse cancelSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -207,6 +211,7 @@ public class SaleService {
         );
     }
 
+    @Cacheable(value = "sale")
     public SaleDTOResponse findById(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -231,6 +236,34 @@ public class SaleService {
 
     }
 
+    @Cacheable(value = "sale")
+    public List<SaleDTOResponse> getAll() {
+        System.out.println("Consultando o banco de dados para obter todas as vendas.");
+        List<Sale> sales = saleRepository.findAll();
+
+        return sales.stream()
+                .map(sale -> {
+                    List<ItemSaleDTOResponse> items = sale.getItemSales().stream()
+                            .map(itemSale -> new ItemSaleDTOResponse(
+                                    itemSale.getProduct().getId(),
+                                    itemSale.getProduct().getName(),
+                                    itemSale.getProduct().getDescription(),
+                                    itemSale.getQuantity()
+                            ))
+                            .collect(Collectors.toList());
+
+                    return new SaleDTOResponse(
+                            sale.getId(),
+                            sale.getUser().getName(),
+                            sale.getDate(),
+                            sale.getStatus(),
+                            sale.getTotal(),
+                            items);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse updateSale(Long id, SaleDTORequest saleDTORequest) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -309,6 +342,7 @@ public class SaleService {
         );
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public void deleteSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " + id));

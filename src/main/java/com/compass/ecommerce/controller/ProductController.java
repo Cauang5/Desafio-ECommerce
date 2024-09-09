@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/products")
 public class ProductController {
@@ -30,6 +32,12 @@ public class ProductController {
     public ResponseEntity<GetProductDTOResponse> getProducsById(@PathVariable Long id){
         GetProductDTOResponse productDTOResponse = productService.getProductById(id);
         return ResponseEntity.status(HttpStatus.OK).body(productDTOResponse);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<GetProductDTOResponse>> getAllProducts() {
+        List<GetProductDTOResponse> products = productService.getAllProducts();
+        return ResponseEntity.ok(products);
     }
 
     @PutMapping("/{id}")
