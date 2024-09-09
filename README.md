@@ -53,3 +53,25 @@ Para rodar o projeto localmente, você precisará ter instalado:
 - **PostgreSQL**: Banco de dados utilizado em produção. Caso prefira, o H2 pode ser usado para desenvolvimento e testes, mas será necessário configurá-lo
 - **Git**: Sistema de controle de versão utilizado para versionamento do código.
 
+
+## Instalação
+
+Siga os passos abaixo para rodar o projeto localmente:
+
+### 1. Pré-requisitos
+
+Antes de começar, certifique-se de ter os seguintes programas instalados em sua máquina:
+
+- **Java 21**: [Instale o Java](https://www.oracle.com/java/technologies/javase-jdk21-downloads.html)
+- **Maven 3.6+**: [Instale o Maven](https://maven.apache.org/install.html)
+- **PostgreSQL**: [Instale o PostgreSQL](https://www.postgresql.org/download/)
+- **Git**: [Instale o Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+
+### 2. Clonar o repositório
+
+Clone o repositório do projeto usando o Git:
+
+```bash
+git clone https://github.com/usuario/nome-do-repositorio.git
+
+
