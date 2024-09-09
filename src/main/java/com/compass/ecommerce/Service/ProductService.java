@@ -38,6 +38,13 @@ public class ProductService {
 
     @CacheEvict(value = "products", allEntries = true)
     public ProductDTOResponse create(ProductDTORequest productDTORequest) {
+
+        //Verifica se já existe um produto com essa mesma descrição
+        productRepository.findByDescription(productDTORequest.description())
+                .ifPresent(existingProduct -> {
+                    throw new ResourceNotFoundException("Produto com a descrição '" + productDTORequest.description() + "' já existe.");
+                });
+
         Product product = new Product();
         product.setName(productDTORequest.name());
         product.setDescription(productDTORequest.description());
@@ -56,6 +63,7 @@ public class ProductService {
                 product.getStock());
     }
 
+    @Cacheable(value = "products")
     public GetProductDTOResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
@@ -84,7 +92,7 @@ public class ProductService {
     }
 
 
-
+    @CacheEvict(value = "products", allEntries = true)
     public ProductDTOResponse updateProduct(Long id, ProductDTORequest productDTORequest) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
@@ -106,8 +114,9 @@ public class ProductService {
         );
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     // Adiciona produtos ao estoque
-    public ProductDTOResponse addProductStock(Long id ,UpdateStockDTORequest addProduct) {
+    public ProductDTOResponse addProductStock(Long id, UpdateStockDTORequest addProduct) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));
 
@@ -125,6 +134,7 @@ public class ProductService {
         );
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     // Remove produtos do estoque
     public ProductDTOResponse removeProductStock(Long id, UpdateStockDTORequest removeStock) {
         Product product = productRepository.findById(id)
@@ -144,6 +154,7 @@ public class ProductService {
         );
     }
 
+    @CacheEvict(value = "products", allEntries = true)
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + id));

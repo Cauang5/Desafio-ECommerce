@@ -39,7 +39,7 @@ public class SaleService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    @CacheEvict(value = "products", allEntries = true)
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse createSale(SaleDTORequest saleDTORequest) {
         User user = userRepository.findById(saleDTORequest.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("Código do usuário inválido"));
@@ -118,6 +118,7 @@ public class SaleService {
         );
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse confirmSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -159,6 +160,7 @@ public class SaleService {
         );
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse cancelSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -209,6 +211,7 @@ public class SaleService {
         );
     }
 
+    @Cacheable(value = "sale")
     public SaleDTOResponse findById(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -233,7 +236,7 @@ public class SaleService {
 
     }
 
-    @Cacheable(value = "sales")
+    @Cacheable(value = "sale")
     public List<SaleDTOResponse> getAll() {
         System.out.println("Consultando o banco de dados para obter todas as vendas.");
         List<Sale> sales = saleRepository.findAll();
@@ -260,6 +263,7 @@ public class SaleService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public SaleDTOResponse updateSale(Long id, SaleDTORequest saleDTORequest) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
@@ -338,6 +342,7 @@ public class SaleService {
         );
     }
 
+    @CacheEvict(value = "sale", allEntries = true)
     public void deleteSale(Long id) {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " + id));
