@@ -18,8 +18,8 @@ public class ItemSale {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "A quantidade é obrigatória.")
-    @Min(value = 1, message = "A quantidade deve ser pelo menos 1.")
+    /*@NotNull(message = "A quantidade é obrigatória.")
+    @Min(value = 1, message = "A quantidade deve ser pelo menos 1.")*/
     private Integer quantity;
 
     @ManyToOne
