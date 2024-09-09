@@ -1,7 +1,9 @@
 package com.compass.ecommerce.controller;
 
-import com.compass.ecommerce.DTO.ProductDTORequest;
-import com.compass.ecommerce.DTO.ProductDTOResponse;
+import com.compass.ecommerce.DTO.Product.GetProductDTOResponse;
+import com.compass.ecommerce.DTO.Product.ProductDTORequest;
+import com.compass.ecommerce.DTO.Product.ProductDTOResponse;
+import com.compass.ecommerce.DTO.Product.UpdateStockDTORequest;
 import com.compass.ecommerce.Service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,15 +27,27 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDTOResponse> getProducsById(@PathVariable Long id){
-        ProductDTOResponse productDTOResponse = productService.getProductById(id);
+    public ResponseEntity<GetProductDTOResponse> getProducsById(@PathVariable Long id){
+        GetProductDTOResponse productDTOResponse = productService.getProductById(id);
         return ResponseEntity.status(HttpStatus.OK).body(productDTOResponse);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ProductDTOResponse> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTORequest productDTORequest){
-        ProductDTOResponse product = productService.updateProduct(id, productDTORequest);
-        return ResponseEntity.status(HttpStatus.OK).body(product);
+        ProductDTOResponse updateProduct = productService.updateProduct(id, productDTORequest);
+        return ResponseEntity.status(HttpStatus.OK).body(updateProduct);
+    }
+
+    @PutMapping("/{id}/addStock")
+    public ResponseEntity<ProductDTOResponse> addStock(@PathVariable Long id, @Valid @RequestBody UpdateStockDTORequest updateStockDTORequest) {
+        ProductDTOResponse updatedProduct = productService.addProductStock(id, updateStockDTORequest);
+        return ResponseEntity.status(HttpStatus.OK).body(updatedProduct);
+    }
+
+    @PutMapping("/{id}/removeStock")
+    public ResponseEntity<ProductDTOResponse> removeStock(@PathVariable Long id, @Valid @RequestBody UpdateStockDTORequest updateStockDTORequest) {
+        ProductDTOResponse updatedProduct = productService.removeProductStock(id, updateStockDTORequest);
+        return ResponseEntity.status(HttpStatus.OK).body(updatedProduct);
     }
 
     @DeleteMapping("/{id}")
