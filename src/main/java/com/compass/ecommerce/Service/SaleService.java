@@ -62,7 +62,7 @@ public class SaleService {
 
                     System.out.println(product.getStock());
 
-                    product.removeFromStock(itemDTO.stock());
+                    product.removeStock(itemDTO.stock());
 
                     // Cria um novo ItemSale e o associa ao produto e à venda
                     ItemSale itemSale = new ItemSale();

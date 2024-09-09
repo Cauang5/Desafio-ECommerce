@@ -2,10 +2,6 @@ package com.compass.ecommerce.model;
 
 import com.compass.ecommerce.Exception.ResourceNotFoundException;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,7 +41,7 @@ public class Product {
         this.stock += quantityToAdd;
     }
 
-    public void removeFromStock(int quantityToRemove) {
+    public void removeStock(int quantityToRemove) {
         if (this.stock - quantityToRemove < 0) {
             throw new ResourceNotFoundException("Estoque insuficiente para remover essa quantidade." +
                     "Quantidade máxima para ser adicionada à venda é de: " +getStock()+ " produtos");
