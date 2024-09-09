@@ -34,6 +34,12 @@ public class SaleController {
         return ResponseEntity.status(HttpStatus.OK).body(sale);
     }
 
+    @GetMapping
+    public ResponseEntity<List<SaleDTOResponse>> getAll() {
+        List<SaleDTOResponse> sales = saleService.getAll();
+        return ResponseEntity.status(HttpStatus.OK).body(sales);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<SaleDTOResponse> updateSale(@PathVariable Long id, @Valid @RequestBody SaleDTORequest saleDTORequest){
         SaleDTOResponse saleDTOResponse = saleService.updateSale(id, saleDTORequest);
