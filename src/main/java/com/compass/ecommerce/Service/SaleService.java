@@ -1,8 +1,8 @@
 package com.compass.ecommerce.Service;
 
-import com.compass.ecommerce.DTO.ItemSaleDTOResponse;
-import com.compass.ecommerce.DTO.SaleDTORequest;
-import com.compass.ecommerce.DTO.SaleDTOResponse;
+import com.compass.ecommerce.DTO.ItemSale.ItemSaleDTOResponse;
+import com.compass.ecommerce.DTO.Sale.SaleDTORequest;
+import com.compass.ecommerce.DTO.Sale.SaleDTOResponse;
 import com.compass.ecommerce.Exception.ResourceNotFoundException;
 import com.compass.ecommerce.model.ItemSale;
 import com.compass.ecommerce.model.Product;
@@ -15,10 +15,15 @@ import com.compass.ecommerce.repository.SaleRepository;
 import com.compass.ecommerce.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,36 +40,36 @@ public class SaleService {
 
     public SaleDTOResponse createSale(SaleDTORequest saleDTORequest) {
         User user = userRepository.findById(saleDTORequest.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("Código do cliente inválido"));
+                .orElseThrow(() -> new ResourceNotFoundException("Código do usuário inválido"));
 
 
         Sale sale = new Sale();
         sale.setUser(user);
         sale.setDate(LocalDateTime.now());
+        sale.setStatus(SaleStatus.PROCESSING);
 
         //Converte os itens da requisição em uma lista de ItemSale
         List<ItemSale> itemSales = saleDTORequest.items().stream()
                 .map(itemDTO -> {
                     // Verifica se o ID do produto é nulo
                     if (itemDTO.productId() == null) {
-                        throw new IllegalArgumentException("O id do produto não pode ser nulo");
+                        throw new ResourceNotFoundException("O id do produto não pode ser nulo");
                     }
 
                     // Busca o produto pelo ID
                     Product product = productRepository.findById(itemDTO.productId())
                             .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado pelo id: " + itemDTO.productId()));
 
+                    System.out.println(product.getStock());
 
-                    if (product.getQuantity() < itemDTO.quantity()){
-                        throw new RuntimeException("Estoque insuficiente do produto: " +product.getName());
-                    }
+                    product.removeFromStock(itemDTO.stock());
 
                     // Cria um novo ItemSale e o associa ao produto e à venda
                     ItemSale itemSale = new ItemSale();
 
                     itemSale.setProduct(product);
 
-                    itemSale.setQuantity(itemDTO.quantity());
+                    itemSale.setQuantity(itemDTO.stock());
                     itemSale.setSale(sale);
 
                     return itemSale;
@@ -73,7 +78,7 @@ public class SaleService {
                 .collect(Collectors.toList());
 
         // Lógica para controle do estoque
-        for(ItemSale itemSale :itemSales){
+        for (ItemSale itemSale : itemSales) {
             Product product = itemSale.getProduct();
 
             Integer newQuantity = product.getQuantity() - itemSale.getQuantity();
@@ -111,9 +116,100 @@ public class SaleService {
         );
     }
 
+    public SaleDTOResponse confirmSale(Long id) {
+        Sale sale = saleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
+
+        // Pega o usuário autenticado
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        User authenticatedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!sale.getUser().getId().equals(authenticatedUser.getId()) && !isAdmin) {
+            throw new ResourceNotFoundException("Você não tem permissão para confirmar esta venda");
+        }
+
+        if (sale.getStatus() == SaleStatus.CANCELED) {
+            throw new ResourceNotFoundException("Não é possível finalizar uma venda que já foi cancelada.");
+        }
+
+        sale.setStatus(SaleStatus.FINISHED);
+        saleRepository.save(sale);
+
+        return new SaleDTOResponse(
+                sale.getId(),
+                sale.getUser().getName(),
+                sale.getDate(),
+                sale.getStatus(),
+                sale.getTotal(),
+                sale.getItemSales().stream()
+                        .map(itemSale -> new ItemSaleDTOResponse(
+                                itemSale.getProduct().getId(),
+                                itemSale.getProduct().getName(),
+                                itemSale.getProduct().getDescription(),
+                                itemSale.getQuantity()
+                        ))
+                        .collect(Collectors.toList())
+        );
+    }
+
+    public SaleDTOResponse cancelSale(Long id) {
+        Sale sale = saleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
+
+        // Pega o usuário autenticado
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        User authenticatedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!sale.getUser().getId().equals(authenticatedUser.getId()) && !isAdmin) {
+            throw new ResourceNotFoundException("Você não tem permissão para cancelar esta venda");
+        }
+
+        if (sale.getStatus() == SaleStatus.FINISHED) {
+            throw new ResourceNotFoundException("Não é possível cancelar uma venda que já foi finalizada.");
+        }
+
+        sale.setStatus(SaleStatus.CANCELED);
+
+        for (ItemSale itemSale : sale.getItemSales()) {
+            Product product = itemSale.getProduct();
+            Integer restoredStock = product.getQuantity() + itemSale.getQuantity();
+            product.setQuantity(restoredStock);
+            product.setStock(product.updateStock(itemSale.getQuantity()));
+            productRepository.save(product);
+        }
+
+        saleRepository.save(sale);
+
+        return new SaleDTOResponse(
+                sale.getId(),
+                sale.getUser().getName(),
+                sale.getDate(),
+                sale.getStatus(),
+                sale.getTotal(),
+                sale.getItemSales().stream()
+                        .map(itemSale -> new ItemSaleDTOResponse(
+                                itemSale.getProduct().getId(),
+                                itemSale.getProduct().getName(),
+                                itemSale.getProduct().getDescription(),
+                                itemSale.getQuantity()
+                        ))
+                        .collect(Collectors.toList())
+        );
+    }
+
     public SaleDTOResponse findById(Long id) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " +id));
+                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
 
         List<ItemSaleDTOResponse> items = sale.getItemSales().stream()
                 .map(itemSale -> new ItemSaleDTOResponse(
@@ -137,13 +233,29 @@ public class SaleService {
 
     public SaleDTOResponse updateSale(Long id, SaleDTORequest saleDTORequest) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " +id));
+                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada pelo id: " + id));
 
-        User user = userRepository
-                .findById(saleDTORequest.userId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado pelo ID: " + saleDTORequest.userId()));
+        // Pega o usuário autenticado
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        User authenticatedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        sale.setUser(user);
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!sale.getUser().getId().equals(authenticatedUser.getId()) && !isAdmin) {
+            throw new ResourceNotFoundException("Você não tem permissão para Atualizar esta venda");
+        }
+
+        if (sale.getStatus() == SaleStatus.FINISHED) {
+            throw new ResourceNotFoundException("Não é possível atualizar uma venda que já foi finalizada.");
+        }
+
+        if (sale.getStatus() == SaleStatus.CANCELED) {
+            throw new ResourceNotFoundException("Não é possível atualizar uma venda que já foi cancelada.");
+        }
+
         sale.setDate(LocalDateTime.now());
 
         //Remove todos os itens associados à venda
@@ -152,7 +264,7 @@ public class SaleService {
         List<ItemSale> updatedItemSales = saleDTORequest.items().stream()
                 .map(itemDTO -> {
                     if (itemDTO.productId() == null) {
-                        throw new IllegalArgumentException("O id do produto não pode ser nulo");
+                        throw new ResourceNotFoundException("O id do produto não pode ser nulo");
                     }
 
                     Product product = productRepository.findById(itemDTO.productId())
@@ -160,35 +272,14 @@ public class SaleService {
 
                     ItemSale itemSale = new ItemSale();
                     itemSale.setProduct(product);
-                    itemSale.setQuantity(itemDTO.quantity());
+                    itemSale.setQuantity(itemDTO.stock());
                     itemSale.setSale(sale);
 
                     return itemSale;
                 })
                 .collect(Collectors.toList());
 
-        //Verifica o status atual da venda e atualiza o estoque
-        SaleStatus saleStatus = saleDTORequest.status();
-        sale.setStatus(saleStatus);
-
-        for(ItemSale itemSale :updatedItemSales){
-            Product product = itemSale.getProduct();
-
-            if (saleStatus == SaleStatus.CANCELED) {
-                // Caso a venda seja cancelada, devolve o produto ao estoque
-                Integer newQuantity = product.getQuantity() + itemSale.getQuantity();
-                product.setQuantity(newQuantity);
-            } else if (saleStatus == SaleStatus.FINISHED) {
-                // Caso a venda seja finalizada, remove permanentemente o produto do estoque
-                Integer newQuantity = product.getQuantity() - itemSale.getQuantity();
-                if (newQuantity < 0) {
-                    throw new RuntimeException("Estoque insuficiente para o produto: " + product.getName());
-                }
-                product.setQuantity(newQuantity);
-            }
-
-            productRepository.save(product);
-        }
+        sale.setStatus(sale.getStatus());
 
         itemSaleRepository.saveAll(updatedItemSales);
         sale.setItemSales(updatedItemSales);
@@ -220,11 +311,40 @@ public class SaleService {
 
     public void deleteSale(Long id) {
         Sale sale = saleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " +id));
+                .orElseThrow(() -> new RuntimeException("Venda não encontrada pelo id: " + id));
 
         //Remove todos os itens associados à venda
         sale.getItemSales().forEach(itemSale -> itemSaleRepository.delete(itemSale));
 
         saleRepository.delete(sale);
     }
+
+    public List<SaleDTOResponse> weeklyReport(LocalDate date) {
+        // Calcular o início e o fim da semana
+        LocalDateTime startWeek = date.with(DayOfWeek.MONDAY).atStartOfDay();  // Início da semana (segunda-feira)
+        LocalDateTime endWeek = date.with(DayOfWeek.SUNDAY).atTime(LocalTime.MAX);  // Fim da semana (domingo)
+
+        // Buscar as vendas no intervalo entre o início e o fim da semana
+        List<Sale> sales = saleRepository.findSalesByDateRange(startWeek, endWeek);
+
+        // Converter as vendas para DTOs de resposta
+        return sales.stream()
+                .map(sale -> new SaleDTOResponse(
+                        sale.getId(),
+                        sale.getUser().getName(),
+                        sale.getDate(),
+                        sale.getStatus(),
+                        sale.getTotal(),
+                        sale.getItemSales().stream()
+                                .map(itemSale -> new ItemSaleDTOResponse(
+                                        itemSale.getProduct().getId(),
+                                        itemSale.getProduct().getName(),
+                                        itemSale.getProduct().getDescription(),
+                                        itemSale.getQuantity()
+                                ))
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+    }
+
 }
