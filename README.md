@@ -41,8 +41,6 @@ A aplicação foi desenvolvida utilizando as seguintes tecnologias:
 - **H2 Database**: Banco de dados em memória utilizado para testes e desenvolvimento.
 - **Lombok**: Para reduzir a verbosidade do código, gerando automaticamente getters, setters e outros métodos utilitários.
 - **JWT (JSON Web Token)**: Utilizado para autenticação e autorização segura.
-- **Jackson Datatype JSR310**: Para suporte ao padrão de datas ISO 8601 no formato JSON.
-- **JUnit e Spring Security Test**: Ferramentas utilizadas para testes automatizados de unidade e de segurança.
 
 ## Requisitos
 
